@@ -15,38 +15,38 @@
     ],
     "android": {
       "package": "com.anonymous.MYSKINAPP"
-    }
-  },
-  "ios": {
-    "bundleIdentifier": "com.ujeen.myskinapp",
-    "googleServicesFile": "./GoogleService-Info.plist"
-  },
-  "android": {
-    "adaptiveIcon": {
-      "foregroundImage": "./assets/images/adaptive-icon.png",
-      "backgroundColor": "#ffffff"
     },
-    "googleServicesFile": "./google-services.json",
-    "edgeToEdgeEnabled": true
-  },
-  "web": {
-    "bundler": "metro",
-    "output": "static",
-    "favicon": "./assets/images/favicon.png"
-  },
-  "plugins": [
-    "expo-router",
-    [
-      "expo-splash-screen",
-      {
-        "image": "./assets/images/splash-icon.png",
-        "imageWidth": 200,
-        "resizeMode": "contain",
-        "backgroundColor": "#F5F3EC"
-      }
-    ]
-  ],
-  "experiments": {
-    "typedRoutes": true
+    "ios": {
+      "bundleIdentifier": "com.ujeen.myskinapp",
+      "googleServicesFile": "./GoogleService-Info.plist"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "googleServicesFile": "./google-services.json",
+      "edgeToEdgeEnabled": true
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#F5F3EC"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
   }
 }

@@ -3,12 +3,13 @@ import { useRouter } from 'expo-router';
 import { doc, setDoc } from 'firebase/firestore';
 import React, { useState } from 'react';
 import {
-  Button,
-  Dimensions,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
+    Alert,
+    Dimensions,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { useAuth } from '../../context/authContext';
 import { db } from '../../firebase/firebaseConfig';
@@ -21,16 +22,78 @@ export default function Questionnaire() {
   const [skinType, setSkinType] = useState('');
   const [budget, setBudget] = useState('');
   const [concern, setConcern] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
 
+  const testFirebaseConnection = async () => {
+    try {
+      console.log('Testing Firebase connection...');
+      const testDoc = doc(db, 'test', 'connection-test');
+      await setDoc(testDoc, { test: true, timestamp: new Date().toISOString() });
+      console.log('Firebase connection test successful');
+      return true;
+    } catch (error) {
+      console.error('Firebase connection test failed:', error);
+      return false;
+    }
+  };
+
   const handleSubmit = async () => {
-    if (!user) return;
-    await setDoc(doc(db, 'responses', user.uid), {
-      skinType,
-      budget,
-      concern,
-    });
-    router.push('/(tabs)/recommendation'); // ✅ Correct path
+    console.log('Submit button pressed');
+    console.log('User:', user);
+    console.log('Skin Type:', skinType);
+    console.log('Concern:', concern);
+    console.log('Budget:', budget);
+
+    if (!user) {
+      setIsSubmitting(false);
+      Alert.alert('Error', 'You must be logged in to submit your skin profile. Please log in or sign up.');
+      return;
+    }
+
+    if (!skinType || !concern || !budget) {
+      setIsSubmitting(false);
+      Alert.alert('Error', 'Please fill in all fields before submitting.');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Test Firebase connection first
+      const connectionTest = await testFirebaseConnection();
+      if (!connectionTest) {
+        throw new Error('Firebase connection failed');
+      }
+
+      console.log('Saving data to Firestore...');
+      const dataToSave = {
+        skinType,
+        budget,
+        concern,
+        timestamp: new Date().toISOString(),
+      };
+      console.log('Data to save:', dataToSave);
+
+      // Save data to Firestore
+      await setDoc(doc(db, 'responses', user.uid), dataToSave);
+      console.log('Data saved successfully');
+
+      // Navigate to recommendation screen immediately
+      router.push('/(tabs)/recommendation');
+
+      // Show success message (optional)
+      Alert.alert(
+        'Success!',
+        'Your skin profile has been saved. Generating your personalized recommendations...'
+      );
+    } catch (error) {
+      console.error('Error saving questionnaire data:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      Alert.alert('Error', `Failed to save your responses: ${errorMessage}. Please try again.`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -81,11 +144,22 @@ export default function Questionnaire() {
         </View>
 
         <View style={styles.buttonWrapper}>
-          <Button
-            title="Submit"
+          <TouchableOpacity
+            style={[
+              styles.submitButton,
+              (!skinType || !concern || !budget || isSubmitting) && styles.submitButtonDisabled
+            ]}
             onPress={handleSubmit}
-            disabled={!skinType || !concern || !budget}
-          />
+            disabled={!skinType || !concern || !budget || isSubmitting}
+            activeOpacity={0.8}
+          >
+            <Text style={[
+              styles.submitButtonText,
+              (!skinType || !concern || !budget || isSubmitting) && styles.submitButtonTextDisabled
+            ]}>
+              {isSubmitting ? 'Submitting...' : 'Submit'}
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
     </ScrollView>
@@ -97,7 +171,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'center',
     backgroundColor: '#F5F3EC',
-    padding: 20,
+    padding: 24,
   },
   wrapper: {
     width: '100%',
@@ -105,32 +179,65 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   title: {
-    fontSize: isLargeScreen ? 28 : 22,
-    fontWeight: '700',
+    fontSize: isLargeScreen ? 36 : 32,
+    fontWeight: 'bold',
     color: '#4A776D',
-    marginBottom: 25,
+    marginBottom: 32,
     textAlign: 'center',
   },
   label: {
-    fontSize: isLargeScreen ? 18 : 16,
-    marginTop: 12,
-    marginBottom: 8,
-    fontWeight: '600',
+    fontSize: isLargeScreen ? 22 : 20,
+    marginTop: 16,
+    marginBottom: 12,
+    fontWeight: 'bold',
+    color: '#333',
   },
   pickerWrapper: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    marginBottom: 20,
+    borderWidth: 2,
+    borderColor: '#4A776D',
+    borderRadius: 12,
+    marginBottom: 24,
     overflow: 'hidden',
     backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   picker: {
-    fontSize: isLargeScreen ? 18 : 14,
-    height: 50,
+    fontSize: isLargeScreen ? 20 : 18,
+    height: 60,
     width: '100%',
+    color: '#333',
+    fontWeight: '500',
   },
   buttonWrapper: {
-    marginTop: 20,
+    marginTop: 32,
+  },
+  submitButton: {
+    backgroundColor: '#4A776D',
+    paddingVertical: 18,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  submitButtonText: {
+    fontSize: isLargeScreen ? 22 : 20,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  submitButtonDisabled: {
+    backgroundColor: '#ccc',
+    shadowOpacity: 0.1,
+    elevation: 2,
+  },
+  submitButtonTextDisabled: {
+    color: '#999',
   },
 });

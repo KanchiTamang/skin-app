@@ -1,115 +1,184 @@
 import { useRouter } from 'expo-router';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import React, { useState } from 'react';
-import {
-  Dimensions,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
-} from 'react-native';
-import { auth, db } from '../firebase/firebaseConfig';
+import { Alert, Dimensions, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { auth } from '../firebase/firebaseConfig';
 
 const screenWidth = Dimensions.get('window').width;
 const isLargeScreen = screenWidth >= 768;
 
-export default function Signup() {
+export default function SignupScreen() {
   const [firstName, setFirstName] = useState('');
+  const [middleName, setMiddleName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const handleSignup = async () => {
+    if (!firstName || !lastName || !email || !phone || !password || !confirmPassword) {
+      Alert.alert('Error', 'Please fill in all required fields.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match.');
+      return;
+    }
+    setLoading(true);
     try {
-      const userCred = await createUserWithEmailAndPassword(auth, email, password);
-      await setDoc(doc(db, 'users', userCred.user.uid), {
-        firstName,
-        lastName,
-        phoneNumber,
-        email,
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      await updateProfile(userCredential.user, {
+        displayName: `${firstName} ${middleName ? middleName + ' ' : ''}${lastName}`.trim(),
       });
-      router.replace('/(tabs)/home');
-    } catch (err) {
-      alert('Signup Failed');
-      console.error(err);
+      // On success, go to home (or root)
+      router.replace('/');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      Alert.alert('Signup Failed', errorMessage);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.scrollContainer}>
-      <View style={styles.formWrapper}>
-        <Text style={styles.title}>Create Account</Text>
-
-        <TextInput placeholder="First Name" style={styles.input} value={firstName} onChangeText={setFirstName} />
-        <TextInput placeholder="Last Name" style={styles.input} value={lastName} onChangeText={setLastName} />
-        <TextInput placeholder="Phone Number" style={styles.input} value={phoneNumber} onChangeText={setPhoneNumber} keyboardType="phone-pad" />
-        <TextInput placeholder="Email" style={styles.input} value={email} onChangeText={setEmail} keyboardType="email-address" />
-        <TextInput placeholder="Password" secureTextEntry style={styles.input} value={password} onChangeText={setPassword} />
-
-        <TouchableOpacity onPress={handleSignup} style={styles.button}>
-          <Text style={styles.buttonText}>Sign Up</Text>
+    <View style={styles.container}>
+      <Text style={styles.title}>Sign Up</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="First Name"
+        placeholderTextColor="#888"
+        value={firstName}
+        onChangeText={setFirstName}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Middle Name (optional)"
+        placeholderTextColor="#888"
+        value={middleName}
+        onChangeText={setMiddleName}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Last Name"
+        placeholderTextColor="#888"
+        value={lastName}
+        onChangeText={setLastName}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Email"
+        placeholderTextColor="#888"
+        autoCapitalize="none"
+        keyboardType="email-address"
+        value={email}
+        onChangeText={setEmail}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Phone Number"
+        placeholderTextColor="#888"
+        keyboardType="phone-pad"
+        value={phone}
+        onChangeText={setPhone}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Password"
+        placeholderTextColor="#888"
+        secureTextEntry
+        value={password}
+        onChangeText={setPassword}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Confirm Password"
+        placeholderTextColor="#888"
+        secureTextEntry
+        value={confirmPassword}
+        onChangeText={setConfirmPassword}
+      />
+      <TouchableOpacity
+        style={[styles.button, loading && styles.buttonDisabled]}
+        onPress={handleSignup}
+        disabled={loading}
+        activeOpacity={0.8}
+      >
+        <Text style={styles.buttonText}>{loading ? 'Signing up...' : 'Sign Up'}</Text>
+      </TouchableOpacity>
+      <View style={styles.bottomTextContainer}>
+        <Text style={styles.bottomText}>Already have an account? </Text>
+        <TouchableOpacity onPress={() => router.replace('/login')}>
+          <Text style={styles.linkText}>Login</Text>
         </TouchableOpacity>
-
-        <Text style={styles.linkText}>
-          Already have an account?
-          <Text onPress={() => router.push('/login')} style={styles.link}> Login</Text>
-        </Text>
       </View>
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollContainer: {
-    flexGrow: 1,
+  container: {
+    flex: 1,
     justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: '#F5F3EC',
-    padding: 20,
-  },
-  formWrapper: {
-    width: '100%',
-    maxWidth: 500,
-    alignSelf: 'center',
+    padding: 24,
   },
   title: {
-    fontSize: isLargeScreen ? 28 : 22,
-    fontWeight: '700',
+    fontSize: isLargeScreen ? 36 : 32,
+    fontWeight: 'bold',
     color: '#4A776D',
-    textAlign: 'center',
-    marginBottom: 30,
+    marginBottom: 32,
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    padding: isLargeScreen ? 16 : 12,
-    fontSize: isLargeScreen ? 18 : 14,
-    borderRadius: 10,
-    marginBottom: 20,
+    width: '100%',
+    maxWidth: 400,
     backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 12,
+    fontSize: isLargeScreen ? 20 : 18,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#4A776D',
+    color: '#333',
   },
   button: {
     backgroundColor: '#4A776D',
-    padding: isLargeScreen ? 18 : 15,
-    borderRadius: 10,
+    paddingVertical: 16,
+    paddingHorizontal: 40,
+    borderRadius: 12,
     alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  buttonDisabled: {
+    backgroundColor: '#ccc',
   },
   buttonText: {
     color: '#fff',
+    fontSize: isLargeScreen ? 22 : 20,
+    fontWeight: 'bold',
+  },
+  bottomTextContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  bottomText: {
     fontSize: isLargeScreen ? 18 : 16,
-    fontWeight: '600',
+    color: '#333',
   },
   linkText: {
-    marginTop: 20,
-    textAlign: 'center',
-    fontSize: isLargeScreen ? 16 : 14,
-  },
-  link: {
+    fontSize: isLargeScreen ? 18 : 16,
     color: '#4A776D',
-    fontWeight: '600',
+    fontWeight: 'bold',
+    textDecorationLine: 'underline',
   },
 });
